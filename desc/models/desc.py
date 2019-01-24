@@ -103,11 +103,11 @@ def train_single(data,dims=None,
     print('The number of cpu in your computer is',total_cpu)
     if use_GPU:
         os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-        #os.environ['CUDA_VISIBLE_DEVICES']=K.tensorflow_backend._get_available_gpus()[0][-1]#use first GPUid
+        #os.environ['CUDA_VISIBLE_DEVICES']=kb.tensorflow_backend._get_available_gpus()[0][-1]#use first GPUid
     else:
         #set only use cpu
         os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-        K.set_session(tf.Session(graph=tf.get_default_graph(),config=tf.ConfigProto(intra_op_parallelism_threads=num_Cores, inter_op_parallelism_threads=num_Cores)))
+        kb.set_session(tf.Session(graph=tf.get_default_graph(),config=tf.ConfigProto(intra_op_parallelism_threads=num_Cores, inter_op_parallelism_threads=num_Cores)))
     if not use_ae_weights and os.path.isfile(os.path.join(save_dir,"ae_weights.h5")):
         os.remove(os.path.join(save_dir,"ae_weights.h5"))
   
@@ -386,27 +386,30 @@ class DescModel(object):
                  dims,
                  x, # input matrix, row sample, col predictors 
                  alpha=1.0,
-                 tol=0.005,
+         tol=0.005,
                  init='glorot_uniform', #initialization method
                  n_clusters=None,     # Number of Clusters, if provided, the clusters center will be initialized by K-means,
                  louvain_resolution=1.0, # resolution for louvain 
-                 n_neighbors=15,    # the 
+                 n_neighbors=10,    # the 
                  pretrain_epochs=300, # epoch for autoencoder
+                 epochs_fit=4, #epochs for each update,int or float 
                  batch_size=256, #batch_size for autoencoder
                  random_seed=201809,
-                 activation='relu',
+         activation='relu',
                  actincenter="tanh",# activation for the last layer in encoder, and first layer in the decoder 
                  drop_rate_SAE=0.2,
                  is_stacked=True,
                  use_earlyStop=True,
                  use_ae_weights=False,
-                 save_encoder_weights=False,
-                 save_dir=None # save result to save_dir, the default is "result". if recurvie path, there root dir must be exists, or there will be something wrong: for example : "/result_singlecell/dataset1" will return wrong if "result_singlecell" not exist
+         save_encoder_weights=False,
+                 save_encoder_step=5,
+                 save_dir="result_tmp"
+                 # save result to save_dir, the default is "result_tmp". if recurvie path, the root dir must be exists, or there will be something wrong: for example : "/result_singlecell/dataset1" will return wrong if "result_singlecell" not exist
                  ):
 
         if not os.path.exists(save_dir):
             print("Create the directory:"+str(save_dir)+" to save result")
-            os.makedirs(save_dir, exist_ok=True)
+            os.mkdir(save_dir)
         self.dims = dims
         self.x=x #feature n*p, n:number of cells, p: number of genes
         self.alpha = alpha
@@ -418,6 +421,7 @@ class DescModel(object):
         self.resolution=louvain_resolution
         self.n_neighbors=n_neighbors
         self.pretrain_epochs=pretrain_epochs
+        self.epochs_fit=epochs_fit
         self.batch_size=batch_size
         self.random_seed=random_seed
         self.activation=activation
@@ -427,29 +431,31 @@ class DescModel(object):
         self.use_earlyStop=use_earlyStop
         self.use_ae_weights=use_ae_weights
         self.save_encoder_weights=save_encoder_weights
+        self.save_encoder_step=save_encoder_step
         self.save_dir=save_dir
-        # set random seed
+        #set random seed
         random.seed(random_seed)
         np.random.seed(random_seed)
         tf.set_random_seed(random_seed)
-        # pretrain autoencoder
+    #pretrain autoencoder
         self.pretrain(n_clusters=n_clusters)
-
+        
 
     def pretrain(self,n_clusters=None):
         sae=SAE(dims=self.dims,
-                act=self.activation,
+        act=self.activation,
                 drop_rate=self.drop_rate_SAE,
                 batch_size=self.batch_size,
                 random_seed=self.random_seed,
                 actincenter=self.actincenter,
                 init=self.init,
-                use_earlyStop=self.use_earlyStop
-                )
+                use_earlyStop=self.use_earlyStop,
+                save_dir=self.save_dir
+           )
         # begin pretraining
         t0 = get_time()
         print("Checking whether %s  exists in the directory"%str(os.path.join(self.save_dir,'ae_weights,h5')))
-        if self.use_ae_weights:
+        if self.use_ae_weights: 
             if not os.path.isfile(self.save_dir+"/ae_weights.h5"):
                 if self.is_stacked:
                     sae.fit(self.x,epochs=self.pretrain_epochs)
@@ -468,14 +474,16 @@ class DescModel(object):
                 sae.fit2(self.x,epochs=self.pretrain_epochs)
             self.autoencoder=sae.autoencoders
             self.encoder=sae.encoder
-
+        
         print('Pretraining time is', get_time() - t0)
-        # save ae results into disk
+        #save ae results into disk
         if not os.path.isfile(os.path.join(self.save_dir,"ae_weights.h5")):
             self.autoencoder.save_weights(os.path.join(self.save_dir,'ae_weights.h5'))
             self.encoder.save_weights(os.path.join(self.save_dir,'encoder_weights.h5'))
             print('Pretrained weights are saved to %s /ae_weights.h5' % self.save_dir)
-        # initialize cluster centers using louvain if n_clusters is not exist
+        #save autoencoder model
+        self.autoencoder.save(os.path.join(self.save_dir,"autoencoder_model.h5"))
+        #initialize cluster centers using louvain if n_clusters is not exist
         features=self.extract_features(self.x)
         features=np.asarray(features)
         if isinstance(n_clusters,int):
@@ -488,26 +496,32 @@ class DescModel(object):
             self.init_centroid=[cluster_centers]
         else:
             print("...number of clusters is unknown, Initialize cluster centroid using louvain method")
-            # can be replaced by other clustering methods
-            # using louvain methods in scanpy
-            adata0 = AnnData(features)
+            #can be replaced by other clustering methods
+            #using louvain methods in scanpy
+            adata0=sc.AnnData(features)
             if adata0.shape[0]>200000:
                 np.random.seed(adata0.shape[0])#set  seed 
-                adata0=adata0[np.random.choice(adata0.shape[0],200000,replace=False)]
+                adata0=adata0[np.random.choice(adata0.shape[0],200000,replace=False)] 
             sc.pp.neighbors(adata0, n_neighbors=self.n_neighbors)
-            sc.tl.louvain(adata0, resolution=self.resolution)
+            sc.tl.louvain(adata0,resolution=self.resolution)
             Y_pred_init=adata0.obs['louvain']
             self.init_pred=np.asarray(Y_pred_init,dtype=int)
+            if np.unique(self.init_pred).shape[0]<=1:
+                #avoid only a cluster
+                #print(np.unique(self.init_pred))
+                exit("Error: There is only a cluster detected. The resolution:"+str(self.resolution)+"is too small, please choose a larger resolution!!")
             features=pd.DataFrame(adata0.X,index=np.arange(0,adata0.shape[0]))
             Group=pd.Series(self.init_pred,index=np.arange(0,adata0.shape[0]),name="Group")
             Mergefeature=pd.concat([features,Group],axis=1)
             cluster_centers=np.asarray(Mergefeature.groupby("Group").mean())
             self.n_clusters=cluster_centers.shape[0]
             self.init_centroid=[cluster_centers]
-        # create desc clustering layer
+        #create desc clustering layer
         clustering_layer = ClusteringLayer(self.n_clusters,weights=self.init_centroid,name='clustering')(self.encoder.output)
         self.model = Model(inputs=self.encoder.input, outputs=clustering_layer)
+        
 
+    
     def load_weights(self, weights):  # load weights of DEC model
         self.model.load_weights(weights)
 
@@ -526,21 +540,63 @@ class DescModel(object):
     def compile(self, optimizer='sgd', loss='kld'):
         self.model.compile(optimizer=optimizer, loss=loss)
 
-    def fit(self, maxiter=1e3, epochs_fit=5):  # unsupervised
+    def fit_on_batch(self,maxiter=1e4,update_interval=200,save_encoder_step=4):
+        save_dir=self.save_dir
+        #step1 initial weights by louvain,or Kmeans
+        self.model.get_layer(name='clustering').set_weights(self.init_centroid)
+        # Step 2: deep clustering
+        y_pred_last = np.copy(self.init_pred)
+        index_array = np.arange(self.x.shape[0])
+        index=0
+        for ite in range(int(maxiter)):
+            if self.save_encoder_weights and ite%(save_encoder_step*update_interval)==0:
+                self.encoder.save_weights(os.path.join(self.save_dir,'encoder_weights_resolution_'+str(self.resolution)+"_"+str(ite)+'.h5'))
+                print('Fine tuning encoder weights are saved to %s/encoder_weights.h5' % self.save_dir) 
+            if ite % update_interval ==0:
+                q=self.model.predict(self.x,verbose=0)
+                p=self.target_distribution(q)
+                y_pred=q.argmax(1)
+                delta_label = np.sum(y_pred != y_pred_last).astype(np.float32) / y_pred.shape[0]
+                y_pred_last = np.copy(y_pred)
+                print("The value of delta_label of current",str(ite+1),"th iteration is",delta_label,">= tol",self.tol)
+                if ite > 0 and delta_label < self.tol:
+                    print('delta_label ', delta_label, '< tol ', self.tol)
+                    print('Reached tolerance threshold. Stop training.')
+                    break
+            idx=index_array[index * self.batch_size: min((index+1) * self.batch_size, self.x.shape[0])]
+            loss = self.model.train_on_batch(x=self.x[idx], y=p[idx])
+            index = index + 1 if (index + 1) * self.batch_size <= self.x.shape[0] else 0
+        #save encoder model
+        self.encoder.save(os.path.join(self.save_dir,"encoder_model.h5"))
+        #load model
+        #encoder=load_model("encoder.h5")
+        #
+        y0=pd.Series(y_pred,dtype='category')
+        y0.cat.categories=range(0,len(y0.cat.categories))
+        print("The final prediction cluster is:")
+        x=y0.value_counts()
+        print(x.sort_index(ascending=True))
+        Embedded_z=self.extract_features(self.x)
+        q=self.model.predict(self.x,verbose=0)
+        return Embedded_z,q
+
+             
+    
+    def fit_on_all(self, maxiter=1e3, epochs_fit=5,save_encoder_step=5): # unsupervised
         save_dir=self.save_dir
         #step1 initial weights by louvain,or Kmeans
         self.model.get_layer(name='clustering').set_weights(self.init_centroid)
         # Step 2: deep clustering
         y_pred_last = np.copy(self.init_pred)
         for ite in range(int(maxiter)):
-            if self.save_encoder_weights and ite%5==0: #save ae_weights for every 20 iterations
-                self.encoder.save_weights(os.path.join(self.save_dir,'encoder_weights_'+str(ite)+'.h5'))
+            if self.save_encoder_weights and ite%save_encoder_step==0: #save ae_weights for every 5 iterations
+                self.encoder.save_weights(os.path.join(self.save_dir,'encoder_weights_resolution_'+str(self.resolution)+"_"+str(ite)+'.h5'))
                 print('Fine tuning encoder weights are saved to %s/encoder_weights.h5' % self.save_dir)
             q = self.model.predict(self.x, verbose=0)
             p = self.target_distribution(q)  # update the auxiliary target distribution p
             # evaluate the clustering performance
             y_pred = q.argmax(1)
-            # check stop criterion
+             # check stop criterion
             delta_label = np.sum(y_pred != y_pred_last).astype(np.float32) / y_pred.shape[0]
             y_pred_last = np.copy(y_pred)
             if ite > 0 and delta_label < self.tol:
@@ -555,18 +611,28 @@ class DescModel(object):
             else:
                 self.model.fit(x=self.x,y=p,epochs=epochs_fit,batch_size=self.batch_size,shuffle=True,verbose=True)
         #save encoder model
-        self.encoder.save(os.path.join(self.save_dir, "encoder_model.h5"))
+        self.encoder.save(os.path.join(self.save_dir,"encoder_model.h5"))
         #load model
         #encoder=load_model("encoder.h5")
         #
-
+        
         y0=pd.Series(y_pred,dtype='category')
         y0.cat.categories=range(0,len(y0.cat.categories))
         print("The final prediction cluster is:")
         x=y0.value_counts()
         print(x.sort_index(ascending=True))
-        embedded=self.extract_features(self.x)
-        return embedded, q
+        Embedded_z=self.extract_features(self.x)
+        return Embedded_z,q
+
+    def fit(self,maxiter=1e4):
+        if isinstance(self.epochs_fit,int):
+            embedded_z,q=self.fit_on_all(maxiter=maxiter,epochs_fit=self.epochs_fit,save_encoder_step=self.save_encoder_step)
+        else:
+            import math
+            update_interval=math.ceil(self.epochs_fit*self.x.shape[0]/self.batch_size)
+            embedded_z,q=self.fit_on_batch(maxiter=maxiter,save_encoder_step=self.save_encoder_step,update_interval=update_interval)
+        return embedded_z,q
+         
 
 
 class SAE(object):

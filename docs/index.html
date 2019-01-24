@@ -7,16 +7,16 @@
 <meta name="generator" content="Jekyll v3.8.5" />
 <meta property="og:title" content="Home" />
 <meta property="og:locale" content="en_US" />
-<link rel="canonical" href="http://localhost:4000/desc/" />
-<meta property="og:url" content="http://localhost:4000/desc/" />
+<link rel="canonical" href="http://localhost:4000/desc_bak/" />
+<meta property="og:url" content="http://localhost:4000/desc_bak/" />
 <meta property="og:site_name" content="DESC" />
 <script type="application/ld+json">
-{"@type":"WebSite","url":"http://localhost:4000/desc/","name":"DESC","headline":"Home","@context":"http://schema.org"}</script>
+{"@type":"WebSite","url":"http://localhost:4000/desc_bak/","name":"DESC","headline":"Home","@context":"http://schema.org"}</script>
 <!-- End Jekyll SEO tag -->
-<link rel="stylesheet" href="/desc/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/desc/feed.xml" title="DESC" /></head>
+<link rel="stylesheet" href="/desc_bak/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/desc_bak/feed.xml" title="DESC" /></head>
 <body><header class="site-header" role="banner">
 
-  <div class="wrapper"><a class="site-title" rel="author" href="/desc/">DESC</a><nav class="site-nav">
+  <div class="wrapper"><a class="site-title" rel="author" href="/desc_bak/">DESC</a><nav class="site-nav">
         <input type="checkbox" id="nav-trigger" class="nav-trigger" />
         <label for="nav-trigger">
           <span class="menu-icon">
@@ -26,14 +26,14 @@
           </span>
         </label>
 
-        <div class="trigger"><a class="page-link" href="/desc/">Home</a><a class="page-link" href="/desc/installation.html">Installation</a><a class="page-link" href="/desc/tutorial.html">Tutorial</a><a class="page-link" href="/desc/contact.html">Contact</a></div>
+        <div class="trigger"><a class="page-link" href="/desc_bak/">Home</a><a class="page-link" href="/desc_bak/installation.html">Installation</a><a class="page-link" href="/desc_bak/tutorial.html">Tutorial</a><a class="page-link" href="/desc_bak/contact.html">Contact</a></div>
       </nav></div>
 </header>
 <main class="page-content" aria-label="Content">
       <div class="wrapper">
-        <h2 id="deep-embedding-single-cell-clustering">Deep Embedding Single-cell Clustering</h2>
+        <h2 id="deep-embedding-for-single-cell-clustering-desc">Deep Embedding for Single-cell Clustering (DESC)</h2>
 
-<p>DESC is an unsupervised deep learning algorithm for clustering scRNA-seq data. The algorithm construct a non-linear mapping function from the original scRNA-seq data space to a low-dimensional feature space by iteratively learns cluster-specific gene expression representation and cluster assignments based on a deep neural network. This iterative procedure moves each cell to its nearest cluster, balances biological and technical differences between clusters, and reduces the influence of batch effect. DESC also enables soft clustering by assigning cluster-specific probabilities to each cell, which facilitates the identification of cells clustered with high-confidence and interpretation of results.</p>
+<p>DESC is an unsupervised deep learning algorithm for clustering scRNA-seq data. The algorithm constructs a non-linear mapping function from the original scRNA-seq data space to a low-dimensional feature space by iteratively learning cluster-specific gene expression representation and cluster assignment based on a deep neural network. This iterative procedure moves each cell to its nearest cluster, balances biological and technical differences between clusters, and reduces the influence of the batch effect. DESC also enables soft clustering by assigning a cluster-specific probability to each cell, which facilitates the identification of cells clustered with high-confidence and interpretation of results.</p>
 
 <p><img src="assets/images/desc_workflow.png" alt="DESC workflow" /></p>
 
@@ -41,34 +41,34 @@
 
 <p><br /></p>
 
-<h2 id="usages">Usages</h2>
+<h2 id="usage">Usage</h2>
 
-<p>The <a href="https://github.com/Yafei611/desc"><strong>desc</strong></a> package is an implementation of deep embedding single-cell clustering. With desc, you can:</p>
+<p>The <a href="https://github.com/eleozzr/desc"><strong>desc</strong></a> package is an implementation of deep embedding for single-cell clustering. With desc, you can:</p>
 
 <ul>
-  <li>Preprocess single cell expression data from varies of formats</li>
-  <li>Build low-dimensional representation of single cell expression</li>
-  <li>Obtain a soft-clustering assignments of cells</li>
-  <li>Visualize cell clusters separation and expression pattern</li>
+  <li>Pre-process single cell gene expression data from various formats.</li>
+  <li>Build a low-dimensional representation of the single-cell gene expression data.</li>
+  <li>Obtain soft-clustering assignments of cells.</li>
+  <li>Visualize the cell clustering results and the gene expression patterns.
+<br /></li>
 </ul>
-
-<p><br /></p>
 
 <h2 id="references">References</h2>
 
-<p>Please cite the references appropriately in case they are used.<br />
-[1] DESC  <br />
-[2] DESC</p>
+<p>Please consider citing the following reference:</p>
 
-<p><br /></p>
+<ul>
+  <li>Xiangjie Li, Yafei Lyu, Jihwan Park, Jingxiao Zhang, Dwight Stambolian, Katalin Susztak, Gang Hu, Mingyao Li. Deep learning enables accurate clustering and batch effect removal in single-cell RNA-seq analysis,2019: <a href="https://www.biorxiv.org">https://www.biorxiv.org</a>
+<br /></li>
+</ul>
 
 <h2 id="licence">Licence</h2>
 
-<p>Copyright (C) 2018 Mingyao’s Lab</p>
+<p>Copyright (C) 2019 Mingyao’s Lab</p>
 
       </div>
     </main><footer class="site-footer h-card">
-  <data class="u-url" href="/desc/"></data>
+  <data class="u-url" href="/desc_bak/"></data>
 
   <div class="wrapper">
 
@@ -77,10 +77,10 @@
     <div class="footer-col-wrapper">
       <div class="footer-col footer-col-1">
         <ul class="contact-list">
-          <li class="p-name">DESC</li><li><a class="u-email" href="mailto:lyuyafei@gmail.com">lyuyafei@gmail.com</a></li></ul>
+          <li class="p-name">DESC</li><li><a class="u-email" href="mailto:mingyao.lab@gmail.com">mingyao.lab@gmail.com</a></li></ul>
       </div>
 
-      <div class="footer-col footer-col-2"><ul class="social-media-list"><li><a href="https://github.com/yafei611"><svg class="svg-icon"><use xlink:href="/desc/assets/minima-social-icons.svg#github"></use></svg> <span class="username">yafei611</span></a></li></ul>
+      <div class="footer-col footer-col-2"><ul class="social-media-list"><li><a href="https://github.com/eleozzr"><svg class="svg-icon"><use xlink:href="/desc_bak/assets/minima-social-icons.svg#github"></use></svg> <span class="username">eleozzr</span></a></li><li><a href="https://www.twitter.com/eleozzr"><svg class="svg-icon"><use xlink:href="/desc_bak/assets/minima-social-icons.svg#twitter"></use></svg> <span class="username">eleozzr</span></a></li></ul>
 </div>
 
       <div class="footer-col footer-col-3">
